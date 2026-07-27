@@ -35,11 +35,7 @@ spec:
               cpu: "400m"
             limits:
               memory: "768Mi"
-<<<<<<< HEAD
               cpu: "1000m"
-=======
-              cpu: "500m"
->>>>>>> 9ccc984bde1dc2516b0273118203acc791e28c4b
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
