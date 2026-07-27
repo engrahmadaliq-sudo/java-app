@@ -103,3 +103,4 @@ kubectl rollout history deployment/java-app-deployment
 - Enable TLS on HAProxy frontend (cert-manager or manual cert).
 - Move secrets (Docker creds, kubeconfig, Slack webhook) into Kubernetes Secrets / Jenkins Credentials — never commit them.
 - Consider Ingress-NGINX or a cloud LB instead of/alongside HAProxy depending on where your cluster runs (on-prem vs cloud).
+# java-app
