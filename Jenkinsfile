@@ -4,7 +4,7 @@ pipeline {
     environment {
         DOCKERHUB_CREDENTIALS = credentials('docker-hub-creds')   // Jenkins credential ID
         KUBECONFIG_CREDENTIALS = credentials('kubeconfig')        // Jenkins credential ID (Secret file)
-        IMAGE_NAME = "yourdockerhubuser/java-app"
+        IMAGE_NAME =  "ahmedali772/java-app"
         IMAGE_TAG = "${env.BUILD_NUMBER}"
     }
 
@@ -17,7 +17,7 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/yourusername/java-app.git'
+                git branch: 'main', url: 'https://github.com/engrahmadaliq-sudo/java-app.git'
             }
         }
 
