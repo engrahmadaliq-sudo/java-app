@@ -105,7 +105,7 @@ pipeline {
 
                     kubectl rollout status \
                     deployment/java-app-deployment \
-                    --timeout=120s
+                    --timeout=300s
                     """
                 }
             }
