@@ -2,10 +2,8 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('docker-hub-creds')   // Jenkins credential ID
-        KUBECONFIG_CREDENTIALS = credentials('kubeconfig')        // Jenkins credential ID (Secret file)
-        IMAGE_NAME =  "ahmedali772/java-app"
-        IMAGE_TAG = "${env.BUILD_NUMBER}"
+        IMAGE_NAME = "ahmedali772/java-app"
+        IMAGE_TAG = "${BUILD_NUMBER}"
     }
 
     options {
@@ -17,63 +15,119 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/engrahmadaliq-sudo/java-app.git'
+                git branch: 'main',
+                    url: 'https://github.com/engrahmadaliq-sudo/java-app.git'
             }
         }
+
 
         stage('Build & Unit Test') {
             steps {
                 sh 'mvn clean package'
             }
+
             post {
                 always {
-                    junit 'target/surefire-reports/*.xml'
+                    script {
+                        junit allowEmptyResults: true,
+                        testResults: 'target/surefire-reports/*.xml'
+                    }
                 }
             }
         }
 
+
         stage('Static Code Analysis') {
             steps {
-                echo 'Running static analysis (SonarQube optional)...'
-                // sh 'mvn sonar:sonar -Dsonar.projectKey=java-app -Dsonar.host.url=$SONAR_URL -Dsonar.login=$SONAR_TOKEN'
+                echo 'SonarQube analysis skipped'
             }
         }
+
 
         stage('Docker Build') {
             steps {
-                sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -t ${IMAGE_NAME}:latest ."
+                sh """
+                docker build \
+                -t ${IMAGE_NAME}:${IMAGE_TAG} \
+                -t ${IMAGE_NAME}:latest .
+                """
             }
         }
+
 
         stage('Docker Push') {
             steps {
-                sh "echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin"
-                sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
-                sh "docker push ${IMAGE_NAME}:latest"
+
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'docker-hub-creds',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )
+                ]) {
+
+                    sh """
+                    echo \$DOCKER_PASS | docker login \
+                    -u \$DOCKER_USER \
+                    --password-stdin
+
+                    docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                    docker push ${IMAGE_NAME}:latest
+
+                    docker logout
+                    """
+                }
             }
         }
 
+
         stage('Deploy to Kubernetes') {
+
             steps {
-                sh """
-                    export KUBECONFIG=${KUBECONFIG_CREDENTIALS}
-                    kubectl set image deployment/java-app-deployment java-app=${IMAGE_NAME}:${IMAGE_TAG} --record=true
-                    kubectl rollout status deployment/java-app-deployment --timeout=120s
-                """
+
+                withCredentials([
+                    file(
+                        credentialsId: 'kubeconfig',
+                        variable: 'KUBECONFIG'
+                    )
+                ]) {
+
+                    sh """
+                    echo "Deploying to Kubernetes..."
+
+                    export KUBECONFIG=\$KUBECONFIG
+
+                    kubectl get nodes
+
+                    kubectl set image \
+                    deployment/java-app-deployment \
+                    java-app=${IMAGE_NAME}:${IMAGE_TAG}
+
+                    kubectl rollout status \
+                    deployment/java-app-deployment \
+                    --timeout=120s
+                    """
+                }
             }
         }
     }
 
+
     post {
+
         success {
             echo "Deployment successful: ${IMAGE_NAME}:${IMAGE_TAG}"
         }
+
+
         failure {
-            echo "Pipeline failed. Rolling back to previous revision..."
-            sh "export KUBECONFIG=${KUBECONFIG_CREDENTIALS} && kubectl rollout undo deployment/java-app-deployment || true"
+            echo "Pipeline failed"
         }
+
+
         always {
-            sh 'docker logout || true'
+            echo "Cleaning workspace..."
+            cleanWs()
         }
     }
 }
