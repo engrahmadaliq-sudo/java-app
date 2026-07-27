@@ -32,24 +32,26 @@ spec:
           resources:
             requests:
               memory: "256Mi"
-              cpu: "250m"
+              cpu: "400m"
             limits:
-              memory: "512Mi"
-              cpu: "500m"
+              memory: "768Mi"
+              cpu: "1000m"
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
               port: 8080
-            initialDelaySeconds: 30
+            initialDelaySeconds: 120
             periodSeconds: 10
-            failureThreshold: 3
+            timeoutSeconds: 3
+            failureThreshold: 6
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
               port: 8080
-            initialDelaySeconds: 15
+            initialDelaySeconds: 90
             periodSeconds: 10
-            failureThreshold: 3
+            timeoutSeconds: 3
+            failureThreshold: 6
           env:
             - name: JAVA_OPTS
               value: "-Xms256m -Xmx512m"
