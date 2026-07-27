@@ -1,0 +1,50 @@
+# Helm values for kube-prometheus-stack
+# Install with:
+#   helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+#   helm install monitoring prometheus-community/kube-prometheus-stack -f kube-prometheus-stack-values.yaml -n monitoring --create-namespace
+
+grafana:
+  adminPassword: "changeme123"
+  service:
+    type: LoadBalancer
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: default
+          folder: ""
+          type: file
+          options:
+            path: /var/lib/grafana/dashboards/default
+  dashboards:
+    default:
+      jvm-micrometer:
+        gnetId: 4701
+        revision: 8
+        datasource: Prometheus
+      haproxy:
+        gnetId: 12693
+        revision: 1
+        datasource: Prometheus
+
+prometheus:
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    retention: 15d
+    additionalScrapeConfigs:
+      - job_name: "haproxy"
+        static_configs:
+          - targets: ["haproxy-exporter.default.svc.cluster.local:9101"]
+
+alertmanager:
+  config:
+    route:
+      receiver: "slack-notifications"
+      group_by: ["alertname"]
+    receivers:
+      - name: "slack-notifications"
+        slack_configs:
+          - api_url: "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+            channel: "#alerts"
+            send_resolved: true
